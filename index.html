@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🌸 My Tasks 🌸</title>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap');
+
+:root {
+    --bg1:#ffd6e8;
+    --bg2:#d0f4ff;
+    --card:#fff0f6;
+    --accent:#ff69b4;
+    --soft:#ffb3d9;
+    --text:#444;
+}
+
+body.dark {
+    --bg1:#2b2e4a;
+    --bg2:#1e1f36;
+    --card:#3a3d6b;
+    --accent:#ff8dc7;
+    --soft:#ffb3d9;
+    --text:#f1f1f1;
+}
+
+body {
+    font-family:'Comic Neue',cursive;
+    background:linear-gradient(135deg,var(--bg1),var(--bg2));
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+    margin:0;
+    transition:0.4s;
+}
+
+.container {
+    width:400px;
+    background:var(--card);
+    padding:25px;
+    border-radius:25px;
+    border:3px solid var(--soft);
+    box-shadow:0 15px 40px rgba(0,0,0,0.2);
+    text-align:center;
+    color:var(--text);
+}
+
+h1 { color:var(--accent); margin:0; }
+
+#datetime { font-size:13px; margin:8px 0; }
+
+#quote {
+    height:20px;
+    font-size:13px;
+    margin-bottom:15px;
+    transition:opacity 0.5s;
+}
+
+input {
+    width:100%;
+    padding:10px;
+    border-radius:20px;
+    border:2px solid var(--soft);
+    outline:none;
+    font-size:14px;
+}
+
+ul {
+    list-style:none;
+    padding:0;
+    margin-top:20px;
+    max-height:180px;
+    overflow-y:auto;
+}
+
+/* Cute Scrollbar */
+ul::-webkit-scrollbar { width:6px; }
+ul::-webkit-scrollbar-thumb {
+    background:var(--accent);
+    border-radius:10px;
+}
+
+li {
+    background:white;
+    margin-bottom:10px;
+    padding:10px;
+    border-radius:15px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    animation:fadeIn 0.3s ease;
+}
+
+body.dark li { background:#4b4e85; }
+
+@keyframes fadeIn {
+    from{opacity:0; transform:translateY(10px);}
+    to{opacity:1; transform:translateY(0);}
+}
+
+.task-left {
+    display:flex;
+    align-items:center;
+    gap:8px;
+}
+
+/* Custom checkbox */
+.task-left input[type="checkbox"] {
+    appearance:none;
+    width:18px;
+    height:18px;
+    border:2px solid var(--accent);
+    border-radius:50%;
+    cursor:pointer;
+    position:relative;
+}
+
+.task-left input[type="checkbox"]:checked {
+    background:var(--accent);
+}
+
+.task-left input[type="checkbox"]:checked::after {
+    content:"✓";
+    position:absolute;
+    top:-2px;
+    left:4px;
+    color:white;
+    font-size:14px;
+}
+
+.completed span {
+    text-decoration:line-through;
+    opacity:0.6;
+}
+
+.delete-btn {
+    background:var(--accent);
+    border:none;
+    color:white;
+    border-radius:10px;
+    padding:5px 8px;
+    cursor:pointer;
+}
+
+.delete-btn:hover { opacity:0.8; }
+
+.progress-container {
+    margin-top:10px;
+    background:#eee;
+    border-radius:20px;
+    height:10px;
+    overflow:hidden;
+}
+
+.progress-bar {
+    height:100%;
+    width:0%;
+    background:var(--accent);
+    transition:0.3s;
+}
+
+#emptyMsg {
+    font-size:13px;
+    margin-top:15px;
+    opacity:0.7;
+}
+
+.controls {
+    margin-top:10px;
+    display:flex;
+    justify-content:space-between;
+    font-size:13px;
+    cursor:pointer;
+}
+
+.toggle { cursor:pointer; }
+
+canvas {
+    position:fixed;
+    top:0;
+    left:0;
+    pointer-events:none;
+}
+</style>
+</head>
+<body>
+
+<canvas id="confetti"></canvas>
+
+<div class="container">
+    <h1>🌸 My Tasks 🌸</h1>
+    <div id="datetime"></div>
+    <div id="quote"></div>
+
+    <input id="taskInput" placeholder="Type your task and press Enter">
+
+    <ul id="taskList"></ul>
+
+    <div id="emptyMsg">🌷 No tasks yet! Add something productive 💕</div>
+
+    <div class="progress-container">
+        <div class="progress-bar" id="progressBar"></div>
+    </div>
+
+    <div class="controls">
+        <span onclick="clearCompleted()">Clear Completed 💕</span>
+        <span class="toggle" onclick="toggleDark()">🌙</span>
+    </div>
+</div>
+
+<script>
+const input=document.getElementById("taskInput");
+const list=document.getElementById("taskList");
+const quote=document.getElementById("quote");
+const progressBar=document.getElementById("progressBar");
+const emptyMsg=document.getElementById("emptyMsg");
+
+const quotes=[
+"You are doing amazing 💖",
+"Small steps every day 🌸",
+"Progress > Perfection ✨",
+"Believe in yourself 🌷",
+"Stay focused & shine 💕"
+];
+
+let qIndex=0;
+function changeQuote(){
+    quote.style.opacity=0;
+    setTimeout(()=>{
+        quote.textContent=quotes[qIndex];
+        quote.style.opacity=1;
+        qIndex=(qIndex+1)%quotes.length;
+    },300);
+}
+setInterval(changeQuote,4000);
+changeQuote();
+
+input.addEventListener("keypress",e=>{
+    if(e.key==="Enter" && input.value.trim()!==""){
+        addTask(input.value.trim(),false);
+        input.value="";
+    }
+});
+
+function addTask(text,completed){
+    const li=document.createElement("li");
+    if(completed) li.classList.add("completed");
+
+    const left=document.createElement("div");
+    left.className="task-left";
+
+    const check=document.createElement("input");
+    check.type="checkbox";
+    check.checked=completed;
+
+    const span=document.createElement("span");
+    span.textContent=text;
+
+    check.onchange=()=>{
+        li.classList.toggle("completed");
+        updateStorage();
+        updateProgress();
+        checkAllDone();
+    };
+
+    const del=document.createElement("button");
+    del.textContent="✖";
+    del.className="delete-btn";
+    del.onclick=()=>{
+        li.style.opacity="0";
+        setTimeout(()=>{li.remove(); updateStorage(); updateProgress();},300);
+    };
+
+    left.appendChild(check);
+    left.appendChild(span);
+    li.appendChild(left);
+    li.appendChild(del);
+    list.appendChild(li);
+
+    updateStorage();
+    updateProgress();
+}
+
+function updateProgress(){
+    const tasks=document.querySelectorAll("#taskList li");
+    if(tasks.length===0){
+        progressBar.style.width="0%";
+        emptyMsg.style.display="block";
+        return;
+    }
+    emptyMsg.style.display="none";
+    const done=[...tasks].filter(t=>t.querySelector("input").checked).length;
+    progressBar.style.width=(done/tasks.length)*100+"%";
+}
+
+function clearCompleted(){
+    document.querySelectorAll("#taskList li").forEach(li=>{
+        if(li.querySelector("input").checked) li.remove();
+    });
+    updateStorage();
+    updateProgress();
+}
+
+function updateStorage(){
+    const tasks=[];
+    document.querySelectorAll("#taskList li").forEach(li=>{
+        tasks.push({
+            text:li.querySelector("span").textContent,
+            completed:li.querySelector("input").checked
+        });
+    });
+    localStorage.setItem("tasks",JSON.stringify(tasks));
+}
+
+function load(){
+    const tasks=JSON.parse(localStorage.getItem("tasks"))||[];
+    tasks.forEach(t=>addTask(t.text,t.completed));
+}
+document.addEventListener("DOMContentLoaded",load);
+
+function toggleDark(){
+    document.body.classList.toggle("dark");
+}
+
+/* Clock */
+function updateTime(){
+    const now=new Date();
+    document.getElementById("datetime").textContent=
+    "📅 "+now.toLocaleDateString()+" ⏰ "+now.toLocaleTimeString();
+}
+setInterval(updateTime,1000);
+updateTime();
+
+/* Confetti */
+function checkAllDone(){
+    const tasks=document.querySelectorAll("#taskList li");
+    if(tasks.length===0) return;
+    if([...tasks].every(t=>t.querySelector("input").checked)){
+        startConfetti();
+        setTimeout(stopConfetti,2000);
+    }
+}
+
+const canvas=document.getElementById("confetti");
+const ctx=canvas.getContext("2d");
+canvas.width=window.innerWidth;
+canvas.height=window.innerHeight;
+
+let pieces=[];
+function startConfetti(){
+    pieces=[];
+    for(let i=0;i<100;i++){
+        pieces.push({
+            x:Math.random()*canvas.width,
+            y:Math.random()*canvas.height,
+            r:Math.random()*6+4,
+            d:Math.random()*100
+        });
+    }
+    requestAnimationFrame(draw);
+}
+
+function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle="#ff69b4";
+    pieces.forEach(p=>{
+        ctx.beginPath();
+        ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+        ctx.fill();
+        p.y+=2;
+        if(p.y>canvas.height) p.y=0;
+    });
+    requestAnimationFrame(draw);
+}
+
+function stopConfetti(){
+    pieces=[];
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+}
+</script>
+
+</body>
+</html>
